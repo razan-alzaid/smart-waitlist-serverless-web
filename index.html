@@ -201,12 +201,9 @@ function showUser(){
 }
 
 function showAdmin(){
-  const pass = prompt("Enter admin code:");
-  if(pass==="admin"){
-    adminView.classList.remove("hidden");
-    userView.classList.add("hidden");
-    getList();
-  }
+  document.getElementById("adminView").classList.remove("hidden");
+  document.getElementById("userView").classList.add("hidden");
+  getList();
 }
 
 /* JOIN */
