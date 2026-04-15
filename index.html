@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Waitlist</title>
+
+<style>
+body {
+  font-family: 'Segoe UI';
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  margin: 0;
+}
+
+/* NAV */
+.nav {
+  background: white;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nav button {
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* CONTAINER (🔥 أكبر) */
+.container {
+  max-width: 650px;   /* 🔥 تم التكبير */
+  margin: 40px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 25px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+}
+
+/* TOP */
+.top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* CROWD */
+.crowd {
+  flex: 1;
+}
+
+.crowd-bars {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.bar {
+  flex: 1;
+  height: 14px;
+  border-radius: 10px;
+  background: #ddd;
+}
+
+.label {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* FORM */
+.form {
+  flex: 1;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin: 6px 0;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+button {
+  padding: 14px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.join {
+  width: 100%;
+  background: #00c853;
+  color: white;
+  margin-top: 12px;
+  font-size: 15px;
+}
+
+/* RESULT */
+#result {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+/* ADMIN */
+.hidden { display: none; }
+
+.card {
+  background: #f5f5f5;
+  padding: 12px;
+  margin: 10px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.success { background: green; color: white; }
+.danger { background: red; color: white; }
+
+.stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.box {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  color: white;
+  text-align: center;
+  font-weight: bold;
+}
+
+.waiting { background: orange; }
+.ready { background: green; }
+.cancel { background: red; }
+
+</style>
+</head>
+
+<body>
+
+<div class="nav">
+  <button onclick="showUser()">Customer</button>
+  <button onclick="showAdmin()">Staff</button>
+</div>
+
+<!-- CUSTOMER -->
+<div id="userView" class="container">
+
+<h2>📋 Smart Waitlist</h2>
+
+<div class="top">
+
+  <!-- CROWD -->
+  <div class="crowd">
+    <div id="bars" class="crowd-bars"></div>
+    <div id="label" class="label"></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form">
+    <input id="name" placeholder="Full Name">
+    <input id="phone" placeholder="Phone Number">
+    <input id="size" type="number" placeholder="Party Size">
+  </div>
+
+</div>
+
+<button class="join" onclick="join()">Join Waitlist</button>
+
+<div id="result"></div>
+
+</div>
+
+<!-- STAFF -->
+<div id="adminView" class="container hidden">
+
+<h2>Staff Dashboard</h2>
+
+<div class="stats">
+  <div class="box waiting"><span id="wCount">0</span><br>Waiting</div>
+  <div class="box ready"><span id="rCount">0</span><br>Ready</div>
+  <div class="box cancel"><span id="cCount">0</span><br>Cancelled</div>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+
+const API = "https://ljacdjgzsk.execute-api.us-east-1.amazonaws.com/prod";
+
+/* NAV */
+function showUser(){
+  userView.classList.remove("hidden");
+  adminView.classList.add("hidden");
+}
+
+function showAdmin(){
+  const pass = prompt("Enter admin code:");
+  if(pass==="admin"){
+    adminView.classList.remove("hidden");
+    userView.classList.add("hidden");
+    getList();
+  }
+}
+
+/* JOIN */
+async function join(){
+
+  const name = document.getElementById("name");
+  const phone = document.getElementById("phone");
+  const size = document.getElementById("size");
+
+  if(!name.value || !phone.value || !size.value){
+    alert("Please fill all fields");
+    return;
+  }
+
+  const res = await fetch(API+"/waitlist",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      customerName:name.value,
+      phone:phone.value,
+      partySize:parseInt(size.value)
+    })
+  });
+
+  const data = await res.json();
+
+  result.innerHTML = "✔ Your position: " + data.position;
+
+  getList();
+}
+
+/* CROWD */
+function drawCrowd(count){
+
+  let html="";
+  let color="green";
+  let text="Low";
+
+  if(count>3 && count<=6){
+    color="orange";
+    text="Medium";
+  } else if(count>6){
+    color="red";
+    text="Busy";
+  }
+
+  for(let i=0;i<10;i++){
+    html += `<div class="bar" style="background:${i<count?color:'#ddd'}"></div>`;
+  }
+
+  bars.innerHTML = html;
+  label.innerText = "Crowd Level: " + text;
+}
+
+/* GET */
+async function getList(){
+
+  const res = await fetch(API+"/waitlist");
+  const data = await res.json();
+
+  drawCrowd(data.totalWaiting || 0);
+
+  let html="";
+  let w=0,r=0,c=0;
+
+  data.customers.forEach(x=>{
+
+    if(x.status==="WAITING") w++;
+    if(x.status==="READY") r++;
+    if(x.status==="CANCELLED") c++;
+
+    if(x.status==="READY") return;
+
+    html+=`
+    <div class="card" data-id="${x.waitlistId}">
+      👤 ${x.customerName}<br>
+      👥 ${x.partySize}<br>
+      Status: ${x.status}<br><br>
+
+      <button class="success" onclick="ready('${x.waitlistId}')">Ready</button>
+      <button class="danger" onclick="remove('${x.waitlistId}')">Remove</button>
+    </div>`;
+  });
+
+  list.innerHTML=html;
+
+  wCount.innerText=w;
+  rCount.innerText=r;
+  cCount.innerText=c;
+}
+
+/* READY */
+async function ready(id){
+  document.querySelectorAll(".card").forEach(card=>{
+    if(card.dataset.id===id){
+      card.remove();
+    }
+  });
+
+  await fetch(API+"/waitlist/ready",{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({waitlistId:id})
+  });
+}
+
+/* DELETE */
+async function remove(id){
+  await fetch(API+"/waitlist",{
+    method:"DELETE",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({waitlistId:id})
+  });
+  getList();
+}
+
+/* LOAD */
+window.onload = getList;
+
+</script>
+
+</body>
+</html>
