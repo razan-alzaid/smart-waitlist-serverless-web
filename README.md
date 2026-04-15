@@ -5,7 +5,7 @@ A cloud-based smart waitlist system for restaurants, built using a serverless ar
 ---
 
 ## 🚀 Live Demo
-https://YOUR-AMPlIFY-LINK
+(https://main.d21vnwvx4jrlny.amplifyapp.com/)
 
 ---
 
